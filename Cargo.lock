@@ -1422,12 +1422,14 @@ dependencies = [
  "alloy",
  "clap",
  "color-eyre",
+ "displaydoc",
  "dotenv",
  "hex",
  "proptest",
  "serde_json",
  "thiserror",
  "tokio",
+ "url",
 ]
 
 [[package]]

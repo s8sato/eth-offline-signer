@@ -6,16 +6,18 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 
 - **Offline signing**
   Generate a fully signed raw transaction (RLP-serialized hex) without any network calls.
-- **EIP-1559 & Legacy fee models support**
-  Choose the modern `max_fee_per_gas` + `max_priority_fee_per_gas` (default) or the classic `gas_price` models.
+- **EIP-1559 and Legacy fee models**
+  Choose the modern `max_fee_per_gas` + `max_priority_fee_per_gas` model or the classic `gas_price` model.
 - **Configurable**
-  Override settings via CLI flags, or environment variables (using `.env` file).
+  Override settings via CLI flags, or default to environment variables (using `.env`).
 - **RPC submission**
   Submit your signed raw transaction to any JSON-RPC endpoint and retrieve the transaction hash.
+- **CLI documentation**
+  Auto-generated help in `docs/cli.md`, kept in sync via CI.
 - **Comprehensive testing**
   Unit tests, property-based tests (Anvil + proptest), and optional Goerli testnet submissions.
 - **CI workflows**
-  Static analysis, unit tests & coverage, integration tests—all automated in GitHub Actions.
+  Static analysis, unit tests & coverage, integration tests, and CLI-help consistency checks—all automated in GitHub Actions.
 
 ## Dependencies
 
@@ -23,7 +25,7 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 - `clap` v4 for CLI parsing
 - `tokio` for async runtime
 - `dotenv` for `.env` config
-- `thiserror` + `color-eyre` for error handling
+- `thiserror` + `color-eyre` + `displaydoc` for error handling
 - `hex` for hex encoding/decoding
 - `proptest` for property tests
 - `serde_json` for JSON utilities
@@ -31,34 +33,25 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 ## Repository Layout
 
 ```plain
-
-eth-offline-signer/                    ← root (package.name = "eth-offline-signer")
+eth-offline-signer/                   ← root (package.name = "eth-offline-signer")
 ├── .github/workflows/
-│   ├── static-analysis.yml           ← fmt, clippy, cargo-audit
+│   ├── static-analysis.yml           ← fmt, clippy, cargo-audit, CLI help 
 │   ├── unit-tests.yml                ← cargo test, coverage
 │   └── integration-tests.yml         ← Anvil + testnet runs
+├── docs/
+│   └── cli.md                        ← auto-generated CLI help (clap-markdown)
 ├── src/
 │   ├── main.rs                       ← binary entry point
-│   ├── lib.rs                        ← library exports
+│   ├── lib.rs                        ← library exports and smoke tests
 │   ├── offline_sign.rs               ← offline-signing utilities
 │   ├── rpc_submit.rs                 ← JSON-RPC submission utilities
-│   └── utils/
-│       ├── mod.rs
-│       └── conversions.rs            ← Ether⇄Wei, hex conversions
+│   └── confirm.rs                    ← Transaction confirmation
 ├── tests/
 │   ├── sign_integration.rs           ← known-vector signing tests
 │   └── submit_proptest.rs            ← proptest + Anvil submission tests
 ├── .env.example                      ← template for RPC_URL, PRIVATE_KEY
-├── .gitignore
-├── Cargo.toml
 ├── CHANGELOG.md                      ← release notes (Unreleased + tags)
-├── LICENSE                           ← MIT license
-├── clippy.toml                       ← Clippy configuration
-├── rustfmt.toml                      ← rustfmt configuration
-├── docs/
-│   └── cli.md                        ← auto-generated CLI help (clap-markdown)
 └── README.md                         ← this document
-
 ```
 
 ## Installation
@@ -76,45 +69,49 @@ cargo build --release
 
 ## Usage
 
-### 1. Offline Signing
+### 1. Offline signing
 
 1. **Disconnect** your network (e.g. `nmcli networking off`).
 
-2. Run the `sign` command (no RPC calls):
+2. Run the `sign` command:
 
    ```bash
    ./target/release/eth-offline-signer sign \
      --private-key 0xYOUR_PRIVATE_KEY \
-     --to 0xRECIPIENT_ADDRESS \
-     --amount 0.01 \
-     --nonce 5 \
-     --max-fee-per-gas 50 \
-     --max-priority-fee-per-gas 2 \
-     [--gas-price-gwei 10] \
-     --gas-limit 21000 \
      --chain-id 5 \
+     --nonce 5 \
+     --gas-limit 21000 \
+     --to 0xRECIPIENT_ADDRESS \
+     --eth 0.01 \
+     [eip1559 --max-fee-per-gas 50 --max-priority-fee-per-gas 2] \
+     [legacy --gas-price 10]
    ```
 
-   - `--private-key`: 0x-prefixed hex private key
-   - `--to`: 0x-prefixed recipient address
-   - `--amount`: ETH amount as string (e.g. `"0.01"`)
-   - `--nonce`: pre-fetched nonce
-   - `--max-fee-per-gas`, `--max-priority-fee-per-gas` (default): EIP-1559 fees in Gwei
-   - `--gas-price-gwei` (alternative): legacy gas price in Gwei
-   - `--gas-limit`: gas limit (default: 21000)
-   - `--chain-id`: chain ID (1=mainnet, 5=Goerli, 56=BSC, etc.)
+   See [CLI help](docs/cli.md#eth-offline-signer-sign) for details.
 
 3. **Reconnect** your network (e.g. `nmcli networking on`).
 
-### 2. RPC Submission
+### 2. RPC submission
 
 ```bash
 ./target/release/eth-offline-signer submit \
-  --raw-tx 0xGENERATED_RAW_TX \
+  --signed-tx-hex 0xGENERATED_RAW_TX \
   --rpc-url https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
 ```
 
 Or set `RPC_URL` in your `.env` and omit `--rpc-url`.
+
+### 3. Confirmation
+
+After submission, wait for the transaction to be mined and retrieve its receipt:
+
+```bash
+./target/release/eth-offline-signer confirm \
+  --tx-hash 0xYOUR_TX_HASH \
+  --rpc-url https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
+```
+
+Once the receipt is available, it will be printed including status, block number, gas used, and any logs.
 
 ## Testnet Workflow
 
