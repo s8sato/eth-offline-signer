@@ -1,30 +1,93 @@
+use std::marker::PhantomData;
+
+use alloy::consensus::Signed;
 use color_eyre::eyre;
 use displaydoc::Display;
 use thiserror::Error;
 
-mod confirm;
-mod offline_sign;
-mod rpc_submit;
+pub mod confirm;
+pub mod sign;
+pub mod submit;
 
 pub use alloy::primitives::U256 as Wei;
 pub use confirm::get_receipt;
-pub use offline_sign::{Eip1559Args, LegacyArgs, TxTypeArgs};
-pub use rpc_submit::submit_raw;
+pub use sign::{CommonPayload, Eip1559Payload, LegacyPayload};
+
+/// Wrapper type indicating a transaction has been signed.
+pub struct TxSigned<T>(Signed<T>);
+
+/// Container for an EIP-2718 envelope–encoded signed transaction.
+pub struct TxEip2718Bytes<T>(Vec<u8>, std::marker::PhantomData<T>);
+
+impl<T> AsRef<[u8]> for TxEip2718Bytes<T> {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+}
+
+impl<T> TxEip2718Bytes<T> {
+    /// Construct a typed `TxEip2718Bytes` wrapper from raw RLP bytes.
+    pub fn from_untyped(bytes: Vec<u8>) -> Self {
+        Self(bytes, PhantomData)
+    }
+}
 
 #[cfg(test)]
 mod tests {
+    use crate::sign::{Build, CommonPayload};
+
     use super::*;
 
     use alloy::{
+        consensus::{TxEip1559, TxEnvelope, TxLegacy},
+        eips::Decodable2718,
         node_bindings::Anvil,
         primitives::U256,
         providers::{Provider, ProviderBuilder},
         signers::local::PrivateKeySigner,
     };
 
-    /// Smoke test: offline sign, submit to Anvil, and confirm receipt
     #[tokio::test]
-    async fn smoke_test_sign_submit_confirm() -> eyre::Result<()> {
+    async fn smoke_test_e1559() -> eyre::Result<()> {
+        fn callback_sign(
+            common_payload: CommonPayload,
+            signer: &PrivateKeySigner,
+        ) -> eyre::Result<TxEip2718Bytes<TxEip1559>> {
+            let payload = Eip1559Payload {
+                max_fee_per_gas: 20_000_000_000,
+                max_priority_fee_per_gas: 1_000_000_000,
+            };
+            let signed_bytes = common_payload.clone().build(payload).sign(signer)?.encode_2718();
+            Ok(signed_bytes)
+        }
+        smoke_test::<TxEip1559>(callback_sign).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn smoke_test_legacy() -> eyre::Result<()> {
+        fn callback_sign(
+            common_payload: CommonPayload,
+            signer: &PrivateKeySigner,
+        ) -> eyre::Result<TxEip2718Bytes<TxLegacy>> {
+            let payload = LegacyPayload { gas_price: 20_000_000_000 };
+            let signed_bytes = common_payload.clone().build(payload).sign(signer)?.encode_2718();
+            Ok(signed_bytes)
+        }
+        smoke_test::<TxLegacy>(callback_sign).await?;
+
+        Ok(())
+    }
+
+    /// Smoke test: offline sign, submit to Anvil, and confirm receipt
+    async fn smoke_test<T>(
+        callback_sign: impl FnOnce(CommonPayload, &PrivateKeySigner) -> eyre::Result<TxEip2718Bytes<T>>,
+    ) -> eyre::Result<()>
+    where
+        Signed<T>: Decodable2718,
+        TxEnvelope: From<Signed<T>>,
+    {
         // Spin up a local Anvil node.
         // Ensure `anvil` is available in $PATH.
         let anvil = Anvil::new().block_time(1).try_spawn()?;
@@ -46,22 +109,18 @@ mod tests {
 
         // DISCONNECT and sign offline.
         println!("Signing transaction");
-        let eip1559_args = TxTypeArgs::Eip1559(Eip1559Args {
-            max_fee_per_gas: 20_000_000_000,
-            max_priority_fee_per_gas: 1_000_000_000,
-        });
-        let rlp_bytes = eip1559_args.sign_tx_into_eip2718_bytes(
-            &signer,
-            anvil.chain_id(),
+        let common_payload = CommonPayload {
+            chain_id: anvil.chain_id(),
             nonce,
-            21_000,
-            bob,
-            U256::from(100),
-        )?;
-        println!("Signed transaction: {}", hex::encode(rlp_bytes.as_slice()));
+            gas_limit: 21_000,
+            to: bob,
+            value: U256::from(100),
+        };
+        let signed_bytes = callback_sign(common_payload, &signer)?;
+        println!("Signed transaction: {}", hex::encode(&signed_bytes));
 
         // RECONNECT and submit transaction.
-        let tx_hash = submit_raw(&rlp_bytes, rpc_url.clone()).await?;
+        let tx_hash = signed_bytes.decode_2718()?.submit(rpc_url.clone()).await?;
         println!("Submitted transaction: {tx_hash}");
 
         // Confirm the transaction receipt.

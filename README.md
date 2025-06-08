@@ -5,7 +5,7 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 ## Features
 
 - **Offline signing**
-  Generate a fully signed raw transaction (RLP-serialized hex) without any network calls.
+  Generate a fully signed raw transaction (EIP-2728-encoded hex) without any network calls.
 - **EIP-1559 and Legacy fee models**
   Choose the modern `max_fee_per_gas` + `max_priority_fee_per_gas` model or the classic `gas_price` model.
 - **Configurable**
@@ -21,7 +21,7 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 
 ## Dependencies
 
-- `alloy` for signing, RLP, and JSON-RPC
+- `alloy` for managing entire transaction lifecycle
 - `clap` v4 for CLI parsing
 - `tokio` for async runtime
 - `dotenv` for `.env` config
@@ -43,12 +43,11 @@ eth-offline-signer/                   ← root (package.name = "eth-offline-sign
 ├── src/
 │   ├── main.rs                       ← binary entry point
 │   ├── lib.rs                        ← library exports and smoke tests
-│   ├── offline_sign.rs               ← offline-signing utilities
-│   ├── rpc_submit.rs                 ← JSON-RPC submission utilities
+│   ├── sign.rs                       ← offline-signing utilities
+│   ├── submit.rs                     ← JSON-RPC submission utilities
 │   └── confirm.rs                    ← Transaction confirmation
 ├── tests/
-│   ├── sign_integration.rs           ← known-vector signing tests
-│   └── submit_proptest.rs            ← proptest + Anvil submission tests
+│   └── cli.rs                        ← Anvil submission tests using CLI
 ├── .env.example                      ← template for RPC_URL, PRIVATE_KEY
 ├── CHANGELOG.md                      ← release notes (Unreleased + tags)
 └── README.md                         ← this document
@@ -94,8 +93,8 @@ cargo build --release
 ### 2. RPC submission
 
 ```bash
-./target/release/eth-offline-signer submit \
-  --signed-tx-hex 0xGENERATED_RAW_TX \
+./target/release/eth-offline-signer submit eip1559 \
+  --signed-hex 02GENERATED_RAW_TX \
   --rpc-url https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
 ```
 

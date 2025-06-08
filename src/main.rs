@@ -1,12 +1,13 @@
 use alloy::{
+    consensus::{TxEip1559, TxLegacy},
     primitives::{Address, TxHash, utils},
     signers::local::PrivateKeySigner,
 };
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use color_eyre::eyre;
 
-use eth_offline_signer as lib;
+use eth_offline_signer::{self as lib, Eip1559Payload, LegacyPayload, TxEip2718Bytes, sign::Build};
 
 /// CLI for offline signing and RPC submission of Ethereum-compatible transactions
 #[derive(Parser)]
@@ -24,7 +25,7 @@ enum Command {
         #[arg(long, env = "PRIVATE_KEY")]
         private_key: PrivateKeySigner,
 
-        /// Chain ID (1=mainnet, 5=goerli, etc.)
+        /// Chain ID (e.g. 1 for Mainnet, 5 for Goerli)
         #[arg(long)]
         chain_id: u64,
 
@@ -46,16 +47,22 @@ enum Command {
 
         /// Specify fee model and parameters
         #[command(subcommand)]
-        tx_type_args: TxTypeArgs,
+        unique_args: UniqueArgs,
     },
 
     /// Submit a previously signed raw transaction via JSON-RPC
     Submit {
-        /// 0x-prefixed signed raw transaction hex
-        #[arg(long)]
-        signed_tx_hex: String,
+        /// Transaction type: EIP-1559 (Type 2) or Legacy (Type 0)
+        #[arg(value_enum)]
+        tx_type: TxType,
 
-        /// JSON-RPC endpoint URL (can also be set via RPC_URL env var)
+        /// Signed and EIP-2718-encoded transaction hex (without `0x` prefix)
+        /// - Begins with `02` for EIP-1559 transactions
+        /// - Begins with `f8` for Legacy transactions
+        #[arg(long)]
+        signed_hex: String,
+
+        /// JSON-RPC endpoint URL
         #[arg(long, env = "RPC_URL")]
         rpc_url: url::Url,
     },
@@ -76,7 +83,7 @@ enum Command {
 }
 
 #[derive(Subcommand)]
-enum TxTypeArgs {
+enum UniqueArgs {
     /// Use the EIP-1559 fee market model
     Eip1559 {
         /// Maximum total fee per gas in Wei
@@ -96,6 +103,14 @@ enum TxTypeArgs {
     },
 }
 
+#[derive(ValueEnum, Clone)]
+enum TxType {
+    /// Use the EIP-1559 fee market (Type-2 transaction)
+    Eip1559,
+    /// Use the legacy gas price model (Type-0 transaction)
+    Legacy,
+}
+
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
@@ -103,21 +118,40 @@ async fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Sign { private_key, chain_id, nonce, gas_limit, to, value, tx_type_args } => {
-            let rlp_bytes = lib::TxTypeArgs::from(tx_type_args).sign_tx_into_eip2718_bytes(
-                &private_key,
-                chain_id,
-                nonce,
-                gas_limit,
-                to,
-                value,
-            )?;
-            let signed_tx_hex = hex::encode(rlp_bytes);
-            println!("{signed_tx_hex}")
+        Command::Sign { private_key, chain_id, nonce, gas_limit, to, value, unique_args } => {
+            let common_payload = lib::CommonPayload { chain_id, nonce, gas_limit, to, value };
+            let signed_hex = match unique_args {
+                UniqueArgs::Eip1559 { max_fee_per_gas, max_priority_fee_per_gas } => {
+                    let unique_payload =
+                        Eip1559Payload { max_fee_per_gas, max_priority_fee_per_gas };
+                    let signed_bytes: TxEip2718Bytes<TxEip1559> =
+                        common_payload.build(unique_payload).sign(&private_key)?.encode_2718();
+                    hex::encode(signed_bytes)
+                }
+                UniqueArgs::Legacy { gas_price } => {
+                    let unique_payload = LegacyPayload { gas_price };
+                    let signed_bytes: TxEip2718Bytes<TxLegacy> =
+                        common_payload.build(unique_payload).sign(&private_key)?.encode_2718();
+                    hex::encode(signed_bytes)
+                }
+            };
+            println!("{signed_hex}")
         }
-        Command::Submit { signed_tx_hex, rpc_url } => {
-            let rlp_bytes = hex::decode(signed_tx_hex)?;
-            let tx_hash = lib::submit_raw(&rlp_bytes, rpc_url).await?;
+        Command::Submit { signed_hex, rpc_url, tx_type } => {
+            let tx_hash = match tx_type {
+                TxType::Eip1559 => {
+                    let signed_bytes: TxEip2718Bytes<TxEip1559> =
+                        hex::decode(signed_hex).map(TxEip2718Bytes::from_untyped)?;
+                    let signed = signed_bytes.decode_2718()?;
+                    signed.submit(rpc_url).await?
+                }
+                TxType::Legacy => {
+                    let signed_bytes: TxEip2718Bytes<TxLegacy> =
+                        hex::decode(signed_hex).map(TxEip2718Bytes::from_untyped)?;
+                    let signed = signed_bytes.decode_2718()?;
+                    signed.submit(rpc_url).await?
+                }
+            };
             println!("{tx_hash}");
         }
         Command::Confirm { tx_hash, rpc_url } => {
@@ -128,20 +162,4 @@ async fn main() -> eyre::Result<()> {
     }
 
     Ok(())
-}
-
-impl From<TxTypeArgs> for lib::TxTypeArgs {
-    fn from(value: TxTypeArgs) -> Self {
-        match value {
-            TxTypeArgs::Eip1559 { max_fee_per_gas, max_priority_fee_per_gas } => {
-                lib::TxTypeArgs::Eip1559(lib::Eip1559Args {
-                    max_fee_per_gas,
-                    max_priority_fee_per_gas,
-                })
-            }
-            TxTypeArgs::Legacy { gas_price } => {
-                lib::TxTypeArgs::Legacy(lib::LegacyArgs { gas_price })
-            }
-        }
-    }
 }

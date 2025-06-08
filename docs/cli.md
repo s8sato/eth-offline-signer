@@ -4,13 +4,22 @@ This document contains the help content for the `eth-offline-signer` command-lin
 
 **Command Overview:**
 
-* [`eth-offline-signer`↴](#eth-offline-signer)
-* [`eth-offline-signer sign`↴](#eth-offline-signer-sign)
-* [`eth-offline-signer sign eip1559`↴](#eth-offline-signer-sign-eip1559)
-* [`eth-offline-signer sign legacy`↴](#eth-offline-signer-sign-legacy)
-* [`eth-offline-signer submit`↴](#eth-offline-signer-submit)
-* [`eth-offline-signer confirm`↴](#eth-offline-signer-confirm)
-* [`eth-offline-signer markdown-help`↴](#eth-offline-signer-markdown-help)
+- [Command-Line Help for `eth-offline-signer`](#command-line-help-for-eth-offline-signer)
+  - [`eth-offline-signer`](#eth-offline-signer)
+          - [**Subcommands:**](#subcommands)
+  - [`eth-offline-signer sign`](#eth-offline-signer-sign)
+          - [**Subcommands:**](#subcommands-1)
+          - [**Options:**](#options)
+  - [`eth-offline-signer sign eip1559`](#eth-offline-signer-sign-eip1559)
+          - [**Options:**](#options-1)
+  - [`eth-offline-signer sign legacy`](#eth-offline-signer-sign-legacy)
+          - [**Options:**](#options-2)
+  - [`eth-offline-signer submit`](#eth-offline-signer-submit)
+          - [**Arguments:**](#arguments)
+          - [**Options:**](#options-3)
+  - [`eth-offline-signer confirm`](#eth-offline-signer-confirm)
+          - [**Options:**](#options-4)
+  - [`eth-offline-signer markdown-help`](#eth-offline-signer-markdown-help)
 
 ## `eth-offline-signer`
 
@@ -41,7 +50,7 @@ Offline-only transaction signing (no network calls)
 ###### **Options:**
 
 * `--private-key <PRIVATE_KEY>` — 0x-prefixed private key for signing
-* `--chain-id <CHAIN_ID>` — Chain ID (1=mainnet, 5=goerli, etc.)
+* `--chain-id <CHAIN_ID>` — Chain ID (e.g. 1 for Mainnet, 5 for Goerli)
 * `--nonce <NONCE>` — Transaction nonce (pre-fetched from RPC)
 * `--gas-limit <GAS_LIMIT>` — Maximum gas units to allow for this transaction
 
@@ -80,12 +89,23 @@ Use the legacy gas price model
 
 Submit a previously signed raw transaction via JSON-RPC
 
-**Usage:** `eth-offline-signer submit --signed-tx-hex <SIGNED_TX_HEX> --rpc-url <RPC_URL>`
+**Usage:** `eth-offline-signer submit --signed-hex <SIGNED_HEX> --rpc-url <RPC_URL> <TX_TYPE>`
+
+###### **Arguments:**
+
+* `<TX_TYPE>` — Transaction type: EIP-1559 (Type 2) or Legacy (Type 0)
+
+  Possible values:
+  - `eip1559`:
+    Use the EIP-1559 fee market (Type-2 transaction)
+  - `legacy`:
+    Use the legacy gas price model (Type-0 transaction)
+
 
 ###### **Options:**
 
-* `--signed-tx-hex <SIGNED_TX_HEX>` — 0x-prefixed signed raw transaction hex
-* `--rpc-url <RPC_URL>` — JSON-RPC endpoint URL (can also be set via RPC_URL env var)
+* `--signed-hex <SIGNED_HEX>` — Signed and EIP-2718-encoded transaction hex (without `0x` prefix) - Begins with `02` for EIP-1559 transactions - Begins with `f8` for Legacy transactions
+* `--rpc-url <RPC_URL>` — JSON-RPC endpoint URL
 
 
 
@@ -116,4 +136,3 @@ Output CLI documentation in Markdown format
     This document was generated automatically by
     <a href="https://crates.io/crates/clap-markdown"><code>clap-markdown</code></a>.
 </i></small>
-
