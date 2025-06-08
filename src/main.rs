@@ -10,7 +10,7 @@ use eth_offline_signer as lib;
 
 /// CLI for offline signing and RPC submission of Ethereum-compatible transactions
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -70,6 +70,9 @@ enum Command {
         #[arg(long, env = "RPC_URL")]
         rpc_url: url::Url,
     },
+
+    /// Output CLI documentation in Markdown format
+    MarkdownHelp,
 }
 
 #[derive(Subcommand)]
@@ -121,6 +124,7 @@ async fn main() -> eyre::Result<()> {
             let receipt = lib::get_receipt(tx_hash, rpc_url).await?;
             println!("{receipt:#?}");
         }
+        Command::MarkdownHelp => clap_markdown::print_help_markdown::<Cli>(),
     }
 
     Ok(())

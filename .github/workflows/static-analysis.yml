@@ -36,3 +36,14 @@ jobs:
         run: cargo install cargo-audit
       - name: Run cargo-audit
         run: cargo audit
+  cli-help:
+    name: cli-help
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check diff
+        run: |
+          cargo run -- markdown-help | diff - docs/cli.md || {
+            echo "Re-generate cli-help with `cargo run -- markdown-help > docs/cli.md`"
+            exit 1
+          }
