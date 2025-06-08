@@ -50,23 +50,7 @@ mod tests {
             max_fee_per_gas: 20_000_000_000,
             max_priority_fee_per_gas: 1_000_000_000,
         });
-        let rlp_bytes = eip1559_args.sign_tx_into_rlp_bytes(
-            &signer,
-            anvil.chain_id(),
-            nonce,
-            21_000,
-            bob,
-            U256::from(100),
-        )?;
-        println!("Signed transaction: {}", hex::encode(rlp_bytes.as_slice()));
-
-        // FIXME: EIP-1559 transaction submission fails with [Provider::send_raw_transaction()](https://docs.rs/alloy/1.0.9/alloy/providers/trait.Provider.html#method.send_raw_transaction).
-        // let tx_hash = submit_raw(&rlp_bytes, rpc_url.clone()).await?;
-
-        // Instead, try legacy transaction type.
-        println!("Signing transaction");
-        let legacy_args = TxTypeArgs::Legacy(LegacyArgs { gas_price: 20_000_000_000 });
-        let rlp_bytes = legacy_args.sign_tx_into_rlp_bytes(
+        let rlp_bytes = eip1559_args.sign_tx_into_eip2718_bytes(
             &signer,
             anvil.chain_id(),
             nonce,

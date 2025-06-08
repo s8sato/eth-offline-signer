@@ -36,7 +36,7 @@ pub struct LegacyArgs {
 }
 
 impl TxTypeArgs {
-    /// Sign the transaction using the selected fee model and return RLP-encoded bytes.
+    /// Sign the transaction using the selected fee model and return EIP-2718-encoded bytes.
     ///
     /// # Arguments
     ///
@@ -50,8 +50,8 @@ impl TxTypeArgs {
     ///
     /// # Returns
     ///
-    /// A vector of RLP-encoded transaction bytes, or a `SignError` if signing fails.
-    pub fn sign_tx_into_rlp_bytes(
+    /// A vector of EIP-2718-encoded transaction bytes, or a `SignError` if signing fails.
+    pub fn sign_tx_into_eip2718_bytes(
         self,
         signer: &PrivateKeySigner,
         chain_id: u64,
@@ -60,17 +60,17 @@ impl TxTypeArgs {
         to: Address,
         value: Wei,
     ) -> Result<Vec<u8>, SignError> {
-        let mut rlp_buf = Vec::new();
+        let mut eip2718_buf = Vec::new();
         match self {
             TxTypeArgs::Eip1559(args) => args
                 .sign_offline(signer, chain_id, nonce, gas_limit, to, value)?
-                .rlp_encode(&mut rlp_buf),
+                .eip2718_encode(&mut eip2718_buf),
             TxTypeArgs::Legacy(args) => args
                 .sign_offline(signer, chain_id, nonce, gas_limit, to, value)?
-                .rlp_encode(&mut rlp_buf),
+                .eip2718_encode(&mut eip2718_buf),
         }
-        let rlp_bytes = core::mem::take(&mut rlp_buf);
-        Ok(rlp_bytes)
+        let eip2718_bytes = core::mem::take(&mut eip2718_buf);
+        Ok(eip2718_bytes)
     }
 }
 

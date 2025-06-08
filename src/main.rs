@@ -104,7 +104,7 @@ async fn main() -> eyre::Result<()> {
 
     match cli.command {
         Command::Sign { private_key, chain_id, nonce, gas_limit, to, value, tx_type_args } => {
-            let rlp_bytes = lib::TxTypeArgs::from(tx_type_args).sign_tx_into_rlp_bytes(
+            let rlp_bytes = lib::TxTypeArgs::from(tx_type_args).sign_tx_into_eip2718_bytes(
                 &private_key,
                 chain_id,
                 nonce,
