@@ -1,108 +1,117 @@
 # eth-offline-signer
 
-A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compatible transactions, powered by Alloy.
+A Rust CLI tool for offline signing and JSON-RPC submission of Ethereum-compatible transactions, built on the Alloy library.
 
-## Features
+## 🔧 Features
 
-- **Offline signing**
-  Generate a fully signed raw transaction (EIP-2728-encoded hex) without any network calls.
-- **EIP-1559 and Legacy fee models**
-  Choose the modern `max_fee_per_gas` + `max_priority_fee_per_gas` model or the classic `gas_price` model.
+- **Offline Signing**
+  Generate a fully signed raw transaction (EIP-2718 envelope, hex-encoded) without any network calls.
+- **Flexible Fee Models**
+  Support for both **EIP-1559** (`max_fee_per_gas` + `max_priority_fee_per_gas`) and **Legacy** (`gas_price`) modes.
 - **Configurable**
-  Override settings via CLI flags, or default to environment variables (using `.env`).
-- **RPC submission**
-  Submit your signed raw transaction to any JSON-RPC endpoint and retrieve the transaction hash.
-- **CLI documentation**
-  Auto-generated help in `docs/cli.md`, kept in sync via CI.
-- **Comprehensive testing**
-  Unit tests, CLI-based tests with Anvil, and optional Sepolia testnet submissions.
-- **CI workflows**
-  Static analysis, unit tests & coverage, integration tests, and CLI-help consistency checks—all automated in GitHub Actions.
+  Override settings via CLI flags or by using environment variables (via `.env`).
+- **RPC Submission**
+  Broadcast your signed transaction to any JSON-RPC endpoint and obtain the transaction hash.
+- **Confirmation**
+  Wait for a transaction to be mined and retrieve its receipt.
+- **Auto-generated Documentation**
+  CLI help in `docs/cli.md` is maintained automatically via CI.
+- **Comprehensive Testing**
+  Unit tests, CLI integration tests on Anvil, and optional Sepolia testnet sends.
+- **CI Workflows**
+  Static analysis, unit tests & coverage, integration tests, CLI-help checks, and manual testnet dispatch—all in GitHub Actions.
 
-## Dependencies
+## 🛠 Dependencies
 
-- `alloy` for managing entire transaction lifecycle
-- `clap` v4 for CLI parsing
-- `tokio` for async runtime
-- `dotenv` for `.env` config
-- `thiserror` + `color-eyre` + `displaydoc` for error handling
-- `hex` for hex encoding/decoding
-- `serde_json` for JSON utilities
+- **alloy** for signing, RLP, and JSON-RPC
+- **clap v4** for command-line parsing
+- **tokio** for async runtime
+- **dotenv** for loading `.env` files
+- **thiserror**, **color-eyre**, **displaydoc** for ergonomic error handling
+- **hex** for hex encoding/decoding
 
-## Repository Layout
+## 📁 Repository Layout
 
 ```plain
 eth-offline-signer/                   ← root (package.name = "eth-offline-signer")
 ├── .github/workflows/
-│   ├── static-analysis.yml           ← fmt, clippy, cargo-audit, CLI help 
-│   ├── unit-tests.yml                ← cargo test, coverage
-│   ├── integration-tests.yml         ← Anvil runs
-│   └── testnet-send.yml              ← Sepolia manual runs
+│   ├── static-analysis.yml           ← fmt, clippy, audit, CLI-help check
+│   ├── unit-tests.yml                ← cargo test & coverage
+│   ├── integration-tests.yml         ← Anvil-based integration
+│   └── testnet-send.yml              ← Manual Sepolia send workflow
 ├── docs/
-│   └── cli.md                        ← auto-generated CLI help (clap-markdown)
+│   └── cli.md                        ← Generated CLI help (clap-markdown)
 ├── src/
-│   ├── main.rs                       ← binary entry point
-│   ├── lib.rs                        ← library exports and smoke tests
-│   ├── sign.rs                       ← offline-signing utilities
+│   ├── main.rs                       ← `eth-offline-signer` binary
+│   ├── lib.rs                        ← Library exports and smoke tests
+│   ├── sign.rs                       ← Offline signing utilities
 │   ├── submit.rs                     ← JSON-RPC submission utilities
 │   └── confirm.rs                    ← Transaction confirmation
 ├── tests/
-│   └── cli_integration.rs            ← Anvil submission tests using CLI
-├── .env.example                      ← template for RPC_URL, PRIVATE_KEY
-├── CHANGELOG.md                      ← release notes (Unreleased + tags)
-└── README.md                         ← this document
+│   └── cli_integration.rs            ← Anvil CLI integration tests
+├── .env.example                      ← Example env variables (RPC_URL, PRIVATE_KEY)
+├── CHANGELOG.md                      ← Release notes (Unreleased + tagged)
+└── README.md                         ← This document
 ```
 
-## Installation
+## 🚀 Installation
 
 ```bash
-git clone https://github.com/yourusername/eth-offline-signer.git
+git clone https://github.com/s8sato/eth-offline-signer.git
 cd eth-offline-signer
 
 cp .env.example .env
 # Edit `.env` to set RPC_URL and PRIVATE_KEY
 
 cargo build --release
-# Binary: ./target/release/eth-offline-signer
+# Binary available at ./target/release/eth-offline-signer
 ```
 
-## Usage
+## ⚙️ Usage
 
-### 1. Offline signing
+See [CLI help](docs/cli.md) for details.
+
+<!-- Sign -->
+### 1. Offline Signing
 
 1. **Disconnect** your network (e.g. `nmcli networking off`).
-
-2. Run the `sign` command:
+2. Run the `sign` command (no RPC calls):
 
    ```bash
    ./target/release/eth-offline-signer sign \
      --private-key 0xYOUR_PRIVATE_KEY \
-     --chain-id 5 \
-     --nonce 5 \
+     --chain-id 11155111 \
+     --nonce 0 \
      --gas-limit 21000 \
      --to 0xRECIPIENT_ADDRESS \
-     --eth 0.01 \
-     [eip1559 --max-fee-per-gas 50 --max-priority-fee-per-gas 2] \
-     [legacy --gas-price 10]
+     --eth 0.001 \
+     [eip1559 --max-fee-per-gas 20000000000 --max-priority-fee-per-gas 1000000000] \
+     [legacy --gas-price 20000000000]
    ```
 
-   See [CLI help](docs/cli.md#eth-offline-signer-sign) for details.
+   Alternatively, set `PRIVATE_KEY` in your `.env` and omit `--private-key`.
+
 
 3. **Reconnect** your network (e.g. `nmcli networking on`).
 
-### 2. RPC submission
+<!-- Submit -->
+### 2. RPC Submission
+
+Submit your signed transaction:
 
 ```bash
-./target/release/eth-offline-signer submit eip1559 \
-  --signed-hex 02GENERATED_RAW_TX \
+./target/release/eth-offline-signer submit \
+  [eip1559 --signed-hex 02GENERATED_RAW_TX] \
+  [legacy --signed-hex f8GENERATED_RAW_TX] \
   --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
-Or set `RPC_URL` in your `.env` and omit `--rpc-url`.
+Alternatively, set `RPC_URL` in your `.env` and omit `--rpc-url`.
 
+<!-- Confirm -->
 ### 3. Confirmation
 
-After submission, wait for the transaction to be mined and retrieve its receipt:
+Wait for mining and fetch the receipt:
 
 ```bash
 ./target/release/eth-offline-signer confirm \
@@ -110,50 +119,47 @@ After submission, wait for the transaction to be mined and retrieve its receipt:
   --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
-Once the receipt is available, it will be printed including status, block number, gas used, and any logs.
+Receipt includes: status, block number, gas used, and logs.
 
-## Testnet Workflow
+## 🌐 Testnet Workflow (Sepolia)
 
-1. **Obtain test ETH** via Sepolia faucets.
-
-2. **Fetch nonce & gas fees** once:
+1. **Get Sepolia ETH** from a faucet.
+2. **Fetch nonce**:
 
    ```bash
-   curl -X POST -H "Content-Type: application/json" \
+   curl -s -X POST -H "Content-Type: application/json" \
      --data '{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionCount","params":["0xYOUR_ADDR","latest"]}' \
      $RPC_URL
    ```
 
-3. **Offline sign** (see above).
-
+3. **Offline sign** as shown above.
 4. **Submit** with `submit` command.
+5. **Verify** on Sepolia Etherscan:
 
-5. **Verify** on Etherscan:
-
-   ```plain
+   ```text
    https://sepolia.etherscan.io/tx/0xYourTxHash
    ```
 
-## Configuration
+## 🔧 Configuration
 
-- `.env.example` shows environment variables:
+- `.env.example` lists:
 
   ```text
   RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
   PRIVATE_KEY=0xYOUR_PRIVATE_KEY
   ```
 
-- CLI flags override env vars.
+- CLI flags take precedence over environment variables.
 
-## Testing
+## ✅ Testing
 
-- **Unit tests**: `cargo test`
-- **Integration tests** (Anvil): run via `integration-tests.yml` in CI
-- **Optional Sepolia tests**: uses GitHub Secrets for PRIVATE_KEY
+- **Unit tests**:  `cargo test`
+- **Integration tests** (Anvil):  via `integration-tests.yml` in CI
+- **Optional Sepolia send**:  via `testnet-send.yml` (workflow_dispatch)
 
-## Contributing
+## 🤝 Contributing
 
-1. Fork & branch from `main`.
+1. Fork and branch from `main`.
 2. Follow [Conventional Commits](https://www.conventionalcommits.org/).
 3. Run:
 
@@ -162,8 +168,8 @@ Once the receipt is available, it will be printed including status, block number
    cargo clippy -- -D warnings
    ```
 
-4. Submit a PR.
+4. Open a pull request.
 
-## License
+## 📜 License
 
 MIT © Shunkichi Sato
