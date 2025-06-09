@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   integration:
-    name: Anvil & Testnet Integration
+    name: Anvil Integration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,10 +24,4 @@ jobs:
       - name: Run integration tests
         env:
           RPC_URL: http://localhost:8545
-        run: cargo test -- --ignored
-      - name: Optional Testnet Run
-        if: success()
-        env:
-          RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-        run: cargo run --release -- testnet-send
+        run: cargo test --test cli_integration -- --show-output --ignored

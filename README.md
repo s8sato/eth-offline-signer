@@ -15,7 +15,7 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 - **CLI documentation**
   Auto-generated help in `docs/cli.md`, kept in sync via CI.
 - **Comprehensive testing**
-  Unit tests, property-based tests (Anvil + proptest), and optional Goerli testnet submissions.
+  Unit tests, property-based tests (Anvil + proptest), and optional Sepolia testnet submissions.
 - **CI workflows**
   Static analysis, unit tests & coverage, integration tests, and CLI-help consistency checks—all automated in GitHub Actions.
 
@@ -37,7 +37,8 @@ eth-offline-signer/                   ← root (package.name = "eth-offline-sign
 ├── .github/workflows/
 │   ├── static-analysis.yml           ← fmt, clippy, cargo-audit, CLI help 
 │   ├── unit-tests.yml                ← cargo test, coverage
-│   └── integration-tests.yml         ← Anvil + testnet runs
+│   ├── integration-tests.yml         ← Anvil runs
+│   └── testnet-send.yml              ← Sepolia manual runs
 ├── docs/
 │   └── cli.md                        ← auto-generated CLI help (clap-markdown)
 ├── src/
@@ -95,7 +96,7 @@ cargo build --release
 ```bash
 ./target/release/eth-offline-signer submit eip1559 \
   --signed-hex 02GENERATED_RAW_TX \
-  --rpc-url https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
+  --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
 Or set `RPC_URL` in your `.env` and omit `--rpc-url`.
@@ -107,14 +108,14 @@ After submission, wait for the transaction to be mined and retrieve its receipt:
 ```bash
 ./target/release/eth-offline-signer confirm \
   --tx-hash 0xYOUR_TX_HASH \
-  --rpc-url https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
+  --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
 Once the receipt is available, it will be printed including status, block number, gas used, and any logs.
 
 ## Testnet Workflow
 
-1. **Obtain test ETH** via Goerli/Sepolia faucets.
+1. **Obtain test ETH** via Sepolia faucets.
 
 2. **Fetch nonce & gas fees** once:
 
@@ -131,7 +132,7 @@ Once the receipt is available, it will be printed including status, block number
 5. **Verify** on Etherscan:
 
    ```plain
-   https://goerli.etherscan.io/tx/0xYourTxHash
+   https://sepolia.etherscan.io/tx/0xYourTxHash
    ```
 
 ## Configuration
@@ -139,7 +140,7 @@ Once the receipt is available, it will be printed including status, block number
 - `.env.example` shows environment variables:
 
   ```text
-  RPC_URL=https://eth-goerli.alchemyapi.io/v2/YOUR_KEY
+  RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
   PRIVATE_KEY=0xYOUR_PRIVATE_KEY
   ```
 
@@ -149,7 +150,7 @@ Once the receipt is available, it will be printed including status, block number
 
 - **Unit tests**: `cargo test`
 - **Property tests** (Anvil + proptest): run via `integration-tests.yml` in CI
-- **Optional Goerli tests**: uses GitHub Secrets for PRIVATE_KEY
+- **Optional Sepolia tests**: uses GitHub Secrets for PRIVATE_KEY
 
 ## Contributing
 

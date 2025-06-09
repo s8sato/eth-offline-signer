@@ -4,22 +4,13 @@ This document contains the help content for the `eth-offline-signer` command-lin
 
 **Command Overview:**
 
-- [Command-Line Help for `eth-offline-signer`](#command-line-help-for-eth-offline-signer)
-  - [`eth-offline-signer`](#eth-offline-signer)
-          - [**Subcommands:**](#subcommands)
-  - [`eth-offline-signer sign`](#eth-offline-signer-sign)
-          - [**Subcommands:**](#subcommands-1)
-          - [**Options:**](#options)
-  - [`eth-offline-signer sign eip1559`](#eth-offline-signer-sign-eip1559)
-          - [**Options:**](#options-1)
-  - [`eth-offline-signer sign legacy`](#eth-offline-signer-sign-legacy)
-          - [**Options:**](#options-2)
-  - [`eth-offline-signer submit`](#eth-offline-signer-submit)
-          - [**Arguments:**](#arguments)
-          - [**Options:**](#options-3)
-  - [`eth-offline-signer confirm`](#eth-offline-signer-confirm)
-          - [**Options:**](#options-4)
-  - [`eth-offline-signer markdown-help`](#eth-offline-signer-markdown-help)
+* [`eth-offline-signer`↴](#eth-offline-signer)
+* [`eth-offline-signer sign`↴](#eth-offline-signer-sign)
+* [`eth-offline-signer sign eip1559`↴](#eth-offline-signer-sign-eip1559)
+* [`eth-offline-signer sign legacy`↴](#eth-offline-signer-sign-legacy)
+* [`eth-offline-signer submit`↴](#eth-offline-signer-submit)
+* [`eth-offline-signer confirm`↴](#eth-offline-signer-confirm)
+* [`eth-offline-signer markdown-help`↴](#eth-offline-signer-markdown-help)
 
 ## `eth-offline-signer`
 
@@ -50,7 +41,7 @@ Offline-only transaction signing (no network calls)
 ###### **Options:**
 
 * `--private-key <PRIVATE_KEY>` — 0x-prefixed private key for signing
-* `--chain-id <CHAIN_ID>` — Chain ID (e.g. 1 for Mainnet, 5 for Goerli)
+* `--chain-id <CHAIN_ID>` — Chain ID (e.g. 1 for Mainnet, 11155111 for Sepolia)
 * `--nonce <NONCE>` — Transaction nonce (pre-fetched from RPC)
 * `--gas-limit <GAS_LIMIT>` — Maximum gas units to allow for this transaction
 
@@ -136,3 +127,4 @@ Output CLI documentation in Markdown format
     This document was generated automatically by
     <a href="https://crates.io/crates/clap-markdown"><code>clap-markdown</code></a>.
 </i></small>
+

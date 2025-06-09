@@ -25,7 +25,7 @@ enum Command {
         #[arg(long, env = "PRIVATE_KEY")]
         private_key: PrivateKeySigner,
 
-        /// Chain ID (e.g. 1 for Mainnet, 5 for Goerli)
+        /// Chain ID (e.g. 1 for Mainnet, 11155111 for Sepolia)
         #[arg(long)]
         chain_id: u64,
 

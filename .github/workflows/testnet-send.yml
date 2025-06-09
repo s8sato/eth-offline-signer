@@ -1,0 +1,120 @@
+name: Sepolia Send
+
+on:
+  workflow_dispatch:
+    inputs:
+      chain_id:
+        description: 'Chain ID for Sepolia'
+        required: false
+        default: '11155111'
+      nonce:
+        description: 'Transaction nonce'
+        required: true
+        type: number
+      gas_limit:
+        description: 'Gas limit'
+        required: false
+        default: '21000'
+      recipient:
+        description: 'Recipient address (0x-prefixed)'
+        required: true
+        default: '0x7eC26E9714edDd6eC2E88A19987fd1D2Fe7feDC4'
+      eth:
+        description: 'Amount to send in ETH'
+        required: true
+        default: '0.001'
+      tx_type:
+        description: 'Transaction type: EIP-1559 (Type 2) or Legacy (Type 0)'
+        required: true
+        type: choice
+        options:
+          - eip1559
+          - legacy
+        default: 'eip1559'
+      max_fee_per_gas:
+        description: 'Max total fee per gas in Wei (EIP-1559)'
+        required: false
+        default: '20000000000'
+      max_priority_fee_per_gas:
+        description: 'Max priority fee per gas (tip) in Wei (EIP-1559)'
+        required: false
+        default: '1000000000'
+      gas_price:
+        description: 'Gas price in Wei (Legacy)'
+        required: false
+        default: '20000000000'
+
+jobs:
+  send-to-sepolia:
+    name: Live Sepolia Send
+    runs-on: ubuntu-latest
+    env:
+      RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+      PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install CLI
+        run: cargo install --locked --path .
+
+      - name: Sign transaction (EIP-1559)
+        id: sign-eip1559
+        if: ${{ inputs.tx_type == 'eip1559' }}
+        run: |
+          SIGNED_BYTES=$(eth-offline-signer sign \
+            --chain-id ${{ github.event.inputs.chain_id }} \
+            --nonce ${{ github.event.inputs.nonce }} \
+            --gas-limit ${{ github.event.inputs.gas_limit }} \
+            --to ${{ github.event.inputs.recipient }} \
+            --eth ${{ github.event.inputs.eth }} \
+            eip1559 \
+            --max-fee-per-gas ${{ github.event.inputs.max_fee_per_gas }} \
+            --max-priority-fee-per-gas ${{ github.event.inputs.max_priority_fee_per_gas }} \
+            )
+          echo "signed_bytes=$SIGNED_BYTES" >> $GITHUB_OUTPUT
+
+      - name: Sign transaction (Legacy)
+        id: sign-legacy
+        if: ${{ inputs.tx_type == 'legacy' }}
+        run: |
+          SIGNED_BYTES=$(eth-offline-signer sign \
+            --chain-id ${{ github.event.inputs.chain_id }} \
+            --nonce ${{ github.event.inputs.nonce }} \
+            --gas-limit ${{ github.event.inputs.gas_limit }} \
+            --to ${{ github.event.inputs.recipient }} \
+            --eth ${{ github.event.inputs.eth }} \
+            legacy \
+            --gas-price ${{ github.event.inputs.gas_price }} \
+            )
+          echo "signed_bytes=$SIGNED_BYTES" >> $GITHUB_OUTPUT
+
+      - name: Submit transaction (EIP-1559)
+        id: submit-eip1559
+        if: ${{ inputs.tx_type == 'eip1559' }}
+        run: |
+          TX_HASH=$(eth-offline-signer submit \
+          eip1559 \
+            --signed-hex ${{ steps.sign-eip1559.outputs.signed_bytes }} \
+            )
+          echo "tx_hash=$TX_HASH" >> $GITHUB_OUTPUT
+
+      - name: Submit transaction (Legacy)
+        id: submit-legacy
+        if: ${{ inputs.tx_type == 'legacy' }}
+        run: |
+          TX_HASH=$(eth-offline-signer submit \
+          legacy \
+            --signed-hex ${{ steps.sign-legacy.outputs.signed_bytes }} \
+            )
+          echo "tx_hash=$TX_HASH" >> $GITHUB_OUTPUT
+
+      - name: Show Etherscan link (EIP-1559)
+        if: ${{ inputs.tx_type == 'eip1559' }}
+        run: |
+          echo "✅ Transaction sent: https://sepolia.etherscan.io/tx/${{ steps.submit-eip1559.outputs.tx_hash }}"
+
+      - name: Show Etherscan link (Legacy)
+        if: ${{ inputs.tx_type == 'legacy' }}
+        run: |
+          echo "✅ Transaction sent: https://sepolia.etherscan.io/tx/${{ steps.submit-legacy.outputs.tx_hash }}"
