@@ -47,7 +47,7 @@ eth-offline-signer/                   ← root (package.name = "eth-offline-sign
 │   ├── submit.rs                     ← JSON-RPC submission utilities
 │   └── confirm.rs                    ← Transaction confirmation
 ├── tests/
-│   └── cli.rs                        ← Anvil submission tests using CLI
+│   └── cli_integration.rs            ← Anvil submission tests using CLI
 ├── .env.example                      ← template for RPC_URL, PRIVATE_KEY
 ├── CHANGELOG.md                      ← release notes (Unreleased + tags)
 └── README.md                         ← this document

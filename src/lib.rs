@@ -114,7 +114,7 @@ mod tests {
             nonce,
             gas_limit: 21_000,
             to: bob,
-            value: U256::from(100),
+            value: U256::from(1_000_000_000_000_000_u64),
         };
         let signed_bytes = callback_sign(common_payload, &signer)?;
         println!("Signed transaction: {}", hex::encode(&signed_bytes));
