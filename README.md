@@ -1,5 +1,11 @@
 # eth-offline-signer
 
+[![Static Analysis](https://github.com/s8sato/eth-offline-signer/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/s8sato/eth-offline-signer/actions/workflows/static-analysis.yml)
+[![Unit Tests & Coverage](https://github.com/s8sato/eth-offline-signer/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/s8sato/eth-offline-signer/actions/workflows/unit-tests.yml)
+[![codecov](https://codecov.io/github/s8sato/eth-offline-signer/graph/badge.svg?token=DGZ6LEM5RC)](https://codecov.io/github/s8sato/eth-offline-signer)
+[![Integration Tests](https://github.com/s8sato/eth-offline-signer/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/s8sato/eth-offline-signer/actions/workflows/integration-tests.yml)
+[![Sepolia Send](https://github.com/s8sato/eth-offline-signer/actions/workflows/testnet-send.yml/badge.svg)](https://github.com/s8sato/eth-offline-signer/actions/workflows/testnet-send.yml)
+
 A Rust CLI tool for offline signing and JSON-RPC submission of Ethereum-compatible transactions, built on the Alloy library.
 
 ## 🔧 Features

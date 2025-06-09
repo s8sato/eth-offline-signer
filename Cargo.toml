@@ -19,3 +19,6 @@ url = "2.5"
 alloy = { version = "1.0", features = ["node-bindings"] }
 assert_cmd = "2.0"
 predicates = "3.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(tarpaulin_include)'] }

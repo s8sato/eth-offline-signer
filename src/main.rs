@@ -111,6 +111,7 @@ enum TxType {
     Legacy,
 }
 
+#[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
