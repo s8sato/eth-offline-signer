@@ -15,7 +15,7 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 - **CLI documentation**
   Auto-generated help in `docs/cli.md`, kept in sync via CI.
 - **Comprehensive testing**
-  Unit tests, property-based tests (Anvil + proptest), and optional Sepolia testnet submissions.
+  Unit tests, CLI-based tests with Anvil, and optional Sepolia testnet submissions.
 - **CI workflows**
   Static analysis, unit tests & coverage, integration tests, and CLI-help consistency checks—all automated in GitHub Actions.
 
@@ -27,7 +27,6 @@ A Rust-based CLI for offline signing and JSON-RPC submission of Ethereum-compati
 - `dotenv` for `.env` config
 - `thiserror` + `color-eyre` + `displaydoc` for error handling
 - `hex` for hex encoding/decoding
-- `proptest` for property tests
 - `serde_json` for JSON utilities
 
 ## Repository Layout
@@ -149,7 +148,7 @@ Once the receipt is available, it will be printed including status, block number
 ## Testing
 
 - **Unit tests**: `cargo test`
-- **Property tests** (Anvil + proptest): run via `integration-tests.yml` in CI
+- **Integration tests** (Anvil): run via `integration-tests.yml` in CI
 - **Optional Sepolia tests**: uses GitHub Secrets for PRIVATE_KEY
 
 ## Contributing

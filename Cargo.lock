@@ -1540,7 +1540,6 @@ dependencies = [
  "dotenv",
  "hex",
  "predicates",
- "proptest",
  "serde_json",
  "thiserror",
  "tokio",
